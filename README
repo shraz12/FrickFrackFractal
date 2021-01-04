@@ -1,0 +1,85 @@
+FractalGrapher.App README
+
+OVERVIEW
+My program contains 9 classes: App, Constants, PaneOrganizer, HelpPage, FractalGenerator, FractalBoard,
+OptionsPane, AttractingPoint, and DiGraph. They interact with each other in the following ways:
+	
+	- App is the topmost level class and contains an instance of PaneOrganizer
+	- Constants is a static class independent of the rest. Called throughout the program by many classes
+	- PaneOrganizer is a top level class which is contained by App and contains FractalGenerator, HelpPage
+	- HelpPage is a lower level class contained by PaneOrganizer. Used to open up a help page.
+	- FractalGenerator is a higher level class that contains FractalBoard and OptionsPane. Used mainly to 
+	  tie the GUI and logical aspects of the game together.
+	- FractalGenerator is a lower level class contained by FractalGenerator. Deals with the logic of fractal
+	  generation
+	- OptionsPane is a lower level class contained by FractalGenerator. Deals with the GUI aspect of the 
+	  fractal generation.
+	- DiGraph is a class that functions as a directed graph. Used by FractalBoard to help deal with connections
+	  between attractors.
+	- AttractingPoint is a wrapper classed used multiple times by the DiGraph and FractalGenerator classes. Stores
+	  different types of information about each specific attractor.
+
+DESIGN CHOICES
+The overarching design choice for fractal generation is a method called the Chaos gamee, a specialized instance of
+an overarching group of methods called Iterative Function Systems (IFSs). This method relies and a user placing attracting
+nodes (which I choose to call attractors), for which contraction maps (maps that shrink the distance between points) are
+defined. Within the convex hull formed by the attractors, points are placed and follow the algorithm below:
+	
+	1. Choose random attractor to move towards, based on path connections
+	2. Move a fractation of the distance towards attractor based on contraction rate
+	3. Repeat steps 1,2 based on how many time you want to recurse
+	
+A simple enough process, no? Yet it can be shown that with an infinite amount of points allowed infinite movement, 
+the points eventually settle into a region know as the IFS attractor (or the fractal). Of course, given our inability to 
+deal with infinites, we can substitute these requirements with a suitable number of randomly placed points and finite
+number of recursions. I explain my most important algorithms and structures below.
+
+Directed Graph
+This is my advanced data structure and naturally fits itself into my program. Connections between attractors are made on
+an adjacency matrix (as opposed to a jagged list because matrix size is relatively small). Storing paths in a directed 
+graph allows the program to easily access probabilities of connected attractors much more easily that storing connections
+for each attractor separately.
+
+Convex Hull
+The convex hull is necessary for point placement. Because not all contraction maps are not guaranteed to drag points from
+outside the hull to inside it, it becomes important to place points within the hull to begin with to provide sharper images.
+The attractors can be thought of as discrete points in 2d spaces, and finding the hull equates to finding the smallest 
+set (which will always be a polygon for a finite set of points) that contains all the points and is connected everywhere by
+straight lines (making the set convex). For scaling purposes, I choose to use the Jarvis' March (aka Gift Wrapping) algorithm,
+which consists finding the most "exterior" points in a set and wrapping around the shape to encompass all the points. While
+harder to code, this algorithm has a time complexity of O(n^2) at worst, as compared to other methods such as triangulation
+which would give complexities of O(n choose 3).
+
+Spinner and Contraction Lists
+The best analogies for the spinner are Markov Chains. The spinner probabilities and contraction lists are the main ways the 
+uses creates unique fractals. The spinner method deals with choosing the next walk a point will perform after travelling to 
+a specific node. I choose to use two lists to help the spinner choose the next attractor to travel to: an indexing list and 
+a list containing cumulative sums of weighted probabilities. A number is randomly choses between 0 and the sums of weighted
+probabilities, and based on where it is, a counter determines which interval it falls into. This counter also corresponts to 
+the index of the attractor the point will travel to.
+
+I choose to store contraction lists separately to save time. Because many of the algorithms for determining contraction rate
+require exponentiation, it can take a lot of time when performing the same calculation 1000s of times. To avoid this issue,
+I calculate a list of contractions with length based on recursion level before hand and allow the random walk to access the 
+list as needed.
+
+Random Walk
+The actual method use for fractal generation. Because I abstract out so much of the function to classes described above, the
+method isn't too long. For a given number of points, it repeats the following process:
+	- Choose attractor to travel
+	- Travel set distance based on contraction rate
+	- Morph colors based on chosen attractor's colors, treating the color's RGB values as 3d coordinates
+Repeating this process for thousands of points approximates the fractal and creates a nice gradient effect for aesthetic purposes.
+
+FractalBoard and OptionsPane Classes
+Unlike previous programs, I choose to skew bulk of the program to bottom level classes rather than top level classes. This is 
+simply due to the fact that FractalBoard and OptionsPane simply have more functionality when they don't need to keep calling
+for data from other classes. Rather than work everything through a top level class, I choose to allow OptionsPane and 
+FractalBoard to communicate directly to save myself trouble when coding, and also because it makes more logical sense. Therefore,
+top level classes serve only to tie the classes together.
+
+***Also not lack of "this"/"super" when methods are called in private EventHandler classes. This is due to the fact the the private
+   classes have no directed inheritence relation to the classes they are contained in.
+
+KNOWN BUGS:
+	There are no known bugs at the moment.
